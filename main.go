@@ -53,6 +53,8 @@ func realMain() error {
 	mux := router.NewRouter(todoDB)
 	mux.Handle("/do-panic", &PanicHandler{})
 	mux.Handle("/do-panic2", middleware.Recovery(&PanicHandler{}))
+	mux.Handle("/os", middleware.WithOS(&OSCheckHandler{}))
+
 	if err := http.ListenAndServe(port, mux); err != nil {
 		return err
 	}
@@ -65,4 +67,17 @@ type PanicHandler struct{}
 
 func (p *PanicHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	panic("panic test")
+}
+
+// OSCheckHandler is a test handler that checks the OS from the request context.
+type OSCheckHandler struct{}
+
+func (o *OSCheckHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	k := middleware.OSContextKey("os")
+	os := r.Context().Value(k)
+	if os == nil {
+		http.Error(w, "os not found", http.StatusInternalServerError)
+		return
+	}
+	w.Write([]byte(os.(string)))
 }
