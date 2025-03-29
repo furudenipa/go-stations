@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/TechBowl-japan/go-stations/db"
+	"github.com/TechBowl-japan/go-stations/handler/context"
 	"github.com/TechBowl-japan/go-stations/handler/middleware"
 	"github.com/TechBowl-japan/go-stations/handler/router"
 )
@@ -51,9 +52,11 @@ func realMain() error {
 
 	// NOTE: 新しいエンドポイントの登録はrouter.NewRouterの内部で行うようにする
 	mux := router.NewRouter(todoDB)
-	mux.Handle("/do-panic", &PanicHandler{})
-	mux.Handle("/do-panic2", middleware.Recovery(&PanicHandler{}))
-	mux.Handle("/os", middleware.WithOS(&OSCheckHandler{}))
+	// mux.Handle("/do-panic", &PanicHandler{})
+	// mux.Handle("/do-panic2", middleware.Recovery(&PanicHandler{}))
+	// mux.Handle("/os", middleware.WithOS(&OSCheckHandler{}))
+	mux.Handle("/log", middleware.Log(&OSCheckHandler{}))
+	mux.Handle("/log2", middleware.WithOS(middleware.Log(&OSCheckHandler{})))
 
 	if err := http.ListenAndServe(port, mux); err != nil {
 		return err
@@ -73,11 +76,10 @@ func (p *PanicHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 type OSCheckHandler struct{}
 
 func (o *OSCheckHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	k := middleware.OSContextKey("os")
-	os := r.Context().Value(k)
-	if os == nil {
+	os := context.OS(r.Context())
+	if os == "" {
 		http.Error(w, "os not found", http.StatusInternalServerError)
 		return
 	}
-	w.Write([]byte(os.(string)))
+	w.Write([]byte(os))
 }
