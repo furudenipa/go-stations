@@ -21,10 +21,9 @@ func Log(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		timeStart := time.Now()
 		h.ServeHTTP(w, r)
-		timeEnd := time.Now()
 		log := log{
 			Timestamp: timeStart,
-			Latency:   timeEnd.Sub(timeStart).Milliseconds(),
+			Latency:   time.Now().Sub(timeStart).Milliseconds(),
 			Path:      r.URL.Path,
 			OS:        context.OS(r.Context()),
 		}
